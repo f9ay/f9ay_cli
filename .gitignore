@@ -1,0 +1,9 @@
+build/
+.DS_Store
+.vscode/
+.vs/
+out/
+.idea/
+cmake-build**
+test_data/640mb.bmp
+

@@ -1,0 +1,4 @@
+[submodule "core"]
+	path = core
+	url = https://github.com/f9ay/f9ay_core
+	branch = main
