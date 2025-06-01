@@ -18,10 +18,9 @@ public:
                         return c == '-';
                     })
                     | std::ranges::to<std::string>();
-                if (i + 1 >= argc) {
-                    std::println("Missing argument for option '{}'", arg);
-                    std::println("Error splitting the argument list: Invalid argument");
-                    throw std::invalid_argument("invalid argument");
+                if (i + 1 >= argc || std::string_view(argv[i + 1]).starts_with("-")) {
+                    option[arg] = "";
+                    continue;
                 }
                 option[arg] = argv[i + 1];
                 i++;
@@ -64,6 +63,13 @@ int main(int argc, char** argv) {
     } catch (...) {
         return -1;
     }
+    if (parser.option.contains("h")) {
+        std::println("Usage: f9ay <input file> <output file> [options]");
+        std::println("-i <input file>");
+        std::println("-o <output file>");
+        std::println("-benchmark");
+        return 0;
+    }
     std::filesystem::path input_file;
     if (parser.option.contains("i")) {
         input_file = parser.option["i"];
@@ -104,7 +110,7 @@ int main(int argc, char** argv) {
                 }
             },
             importer);
-    }catch (...) {
+    } catch (...) {
         std::println("no implement file format");
         return -1;
     }
@@ -130,9 +136,20 @@ int main(int argc, char** argv) {
     }
     std::unique_ptr<std::byte[]> buffer;
     size_t size;
+    std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+    bool enable_benchmark = false;
+    if (parser.option.contains("benchmark")) {
+        enable_benchmark = true;
+    }
     std::visit(
-        [&buffer, &size](auto &&imageMtx, auto &&exp) {
-            std::tie(buffer, size) = exp.exportToByte(imageMtx);
+        [&buffer, &size, &start, &end, enable_benchmark](auto &&imageMtx, auto &&expo) {
+            if (enable_benchmark) {
+                start = std::chrono::high_resolution_clock::now();
+            }
+            std::tie(buffer, size) = expo.exportToByte(imageMtx);
+            if (enable_benchmark) {
+                end = std::chrono::high_resolution_clock::now();
+            }
         },
         image_midway, exporter);
 
@@ -143,4 +160,7 @@ int main(int argc, char** argv) {
     }
     out.write(reinterpret_cast<const char*>(buffer.get()), size);
     std::println("done");
+    if (enable_benchmark) {
+        std::println("{}", std::chrono::duration_cast<std::chrono::milliseconds>(end - start));
+    }
 }

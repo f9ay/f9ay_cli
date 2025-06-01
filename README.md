@@ -28,5 +28,5 @@ git clone --recurse-submodules <repo url>
 
 usage
 ```bash
-f9ay -i <input file> -o <output file>
+f9ay -i <input file> -o <output file> [-benchmark]
 ```
