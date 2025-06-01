@@ -16,7 +16,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 add_executable(f9ay ${SOURCES} ${HEADERS})
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(f9ay PRIVATE /FAcs /Qpar /utf-8 /Qvec-report:1)
+    target_compile_options(f9ay PRIVATE /FAcs /Qpar /utf-8)
 elseif (CMAKE_CXXCOMPILER_ID STREQUAL "CLANG")
     target_compile_options(f9ay PRIVATE -fverbose-asm --save-temps -fexperimental-library)
 else ()
