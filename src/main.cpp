@@ -5,6 +5,7 @@
 #include "bmp.hpp"
 #include <ranges>
 #include <print>
+#include <chrono>
 
 using std::operator ""s;
 
