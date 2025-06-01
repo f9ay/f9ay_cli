@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    const auto input_buffer = f9ay::readFile(ifs);
+    auto input_buffer = f9ay::readFile(ifs);
     ifs.close();
     auto importer = selectImporter(input_buffer.get());
     f9ay::Midway image_midway;
@@ -106,6 +106,7 @@ int main(int argc, char** argv) {
             [&image_midway, &input_buffer]<typename T>(T &&imp) {
                 if constexpr (requires { imp.importFromByte(input_buffer.get()); }) {
                     image_midway = imp.importFromByte(input_buffer.get());
+                    input_buffer.reset();
                 } else {
                     throw std::runtime_error("no implement file format");
                 }
