@@ -42,7 +42,7 @@ public:
     int args_index = 0;
 };
 
-static std::variant<f9ay::Bmp, f9ay::Jpeg, f9ay::PNG> selectImporter(const std::byte *data) {
+static std::variant<f9ay::Bmp, f9ay::Jpeg<>, f9ay::PNG> selectImporter(const std::byte *data) {
     // buffer may overflow but I don't care
     if (data[0] == std::byte{0x89} && data[1] == std::byte{0x50} && data[2] == std::byte{0x4E} &&
         data[3] == std::byte{0x47}) {
@@ -66,9 +66,13 @@ int main(int argc, char** argv) {
     }
     if (parser.option.contains("h")) {
         std::println("Usage: f9ay <input file> <output file> [options]");
-        std::println("-i <input file>");
-        std::println("-o <output file>");
-        std::println("-benchmark");
+        std::println("Options:");
+        std::println("  -i <input file>");
+        std::println("  -o <output file>");
+        std::println("  -benchmark");
+
+        std::println("Jpeg options:");
+        std::println("  -s <4:4:4 or 4:2:2>     setting jpeg downsampling ratio default is 4:2:2");
         return 0;
     }
     std::filesystem::path input_file;
@@ -87,19 +91,25 @@ int main(int argc, char** argv) {
     }
 
     if (input_file == "" || output_file == "") {
-        std::println("no input file or output file");
+        std::println("error : no input file or output file");
         return -1;
     }
 
     std::ifstream ifs(input_file, std::ios::binary);
     if (!ifs.is_open()) {
-        std::println("failed to open {}", input_file.string());
+        std::println("error : failed to open {}", input_file.string());
         return -1;
     }
 
     const auto input_buffer = f9ay::readFile(ifs);
     ifs.close();
-    auto importer = selectImporter(input_buffer.get());
+    std::variant<f9ay::Bmp, f9ay::Jpeg<>, f9ay::PNG> importer;
+    try {
+        importer = selectImporter(input_buffer.get());
+    } catch (...) {
+        std::println("error : unsupported input image type ", input_file.string());
+        return -1;
+    }
     f9ay::Midway image_midway;
     try {
         std::visit(
@@ -112,7 +122,7 @@ int main(int argc, char** argv) {
             },
             importer);
     } catch (...) {
-        std::println("no implement file format");
+        std::println("error : no implement file format");
         return -1;
     }
 
@@ -121,18 +131,27 @@ int main(int argc, char** argv) {
                         | std::views::split('.')
                         | std::ranges::to<std::vector>();
     auto output_format = std::string_view(output_split.back());
-    std::variant<f9ay::Bmp, f9ay::Jpeg, f9ay::PNG> exporter;
+    std::variant<f9ay::Bmp, f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_2_2>, f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_4_4>, f9ay::PNG> exporter;
     if (output_format == "bmp") {
         exporter = f9ay::Bmp();
     }
     else if (output_format == "jpg" || output_format == "jpeg") {
-        exporter = f9ay::Jpeg();
+        if (parser.option.contains("s") && parser.option["s"] == "4:4:4") {
+            exporter = f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_4_4>();
+        }
+        else if (parser.option.contains("s") && parser.option["s"] != "4:2:2") {
+            std::println("error : Illegal sampling value {}", parser.option["s"]);
+            return -1;
+        }
+        else {
+            exporter = f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_2_2>();
+        }
     }
     else if (output_format == "png") {
         exporter = f9ay::PNG();
     }
     else {
-        std::println("unsupported output format {}", output_format);
+        std::println("error : unsupported output format {}", output_format);
         return -1;
     }
     std::unique_ptr<std::byte[]> buffer;
@@ -156,7 +175,7 @@ int main(int argc, char** argv) {
 
     std::ofstream out(output_file, std::ios::binary);
     if (!out.is_open()) {
-        std::println("failed to open {}", output_file.string());
+        std::println("error : failed to open {}", output_file.string());
         return -1;
     }
     out.write(reinterpret_cast<const char*>(buffer.get()), size);
