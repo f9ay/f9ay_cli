@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
         std::println("  -benchmark");
 
         std::println("Jpeg options:");
-        std::println("  -s <4:4:4 or 4:2:2>     setting jpeg downsampling ratio default is 4:2:2");
+        std::println("  -s <4:4:4 or 4:2:0>     setting jpeg downsampling ratio, default is 4:2:0");
         return 0;
     }
     std::filesystem::path input_file;
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
                         | std::views::split('.')
                         | std::ranges::to<std::vector>();
     auto output_format = std::string_view(output_split.back());
-    std::variant<f9ay::Bmp, f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_2_2>, f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_4_4>, f9ay::PNG> exporter;
+    std::variant<f9ay::Bmp, f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_2_0>, f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_4_4>, f9ay::PNG> exporter;
     if (output_format == "bmp") {
         exporter = f9ay::Bmp();
     }
@@ -140,12 +140,12 @@ int main(int argc, char** argv) {
         if (parser.option.contains("s") && parser.option["s"] == "4:4:4") {
             exporter = f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_4_4>();
         }
-        else if (parser.option.contains("s") && parser.option["s"] != "4:2:2") {
+        else if (parser.option.contains("s") && parser.option["s"] != "4:2:0") {
             std::println("error : Illegal sampling value {}", parser.option["s"]);
             return -1;
         }
         else {
-            exporter = f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_2_2>();
+            exporter = f9ay::Jpeg<f9ay::Jpeg_sampling::ds_4_2_0>();
         }
     }
     else if (output_format == "png") {
